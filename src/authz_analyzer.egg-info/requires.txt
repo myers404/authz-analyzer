@@ -1,0 +1,7 @@
+
+[test]
+cython
+dd==0.6.0
+hypothesis
+pytest
+wheel

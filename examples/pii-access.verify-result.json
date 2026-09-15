@@ -1,0 +1,69 @@
+{
+  "resultVersion": "1",
+  "kind": "verify",
+  "status": "violated",
+  "access": "user.ssn",
+  "required": "user.ssn",
+  "counterexample": {
+    "complete": true,
+    "values": {
+      "ADMIN": false,
+      "EMPLOYEE": false,
+      "PII_READ": false,
+      "SUPPORT_OVERRIDE": true,
+      "INCIDENT_OPEN": true
+    }
+  },
+  "explanation": {
+    "minimality": "subset-minimal",
+    "literals": [
+      {
+        "atom": "ADMIN",
+        "value": false,
+        "metadata": {
+          "description": "Caller is an administrator",
+          "category": "role",
+          "provenance": [
+            {"source": "roles.yaml", "pointer": "/roles/admin"}
+          ]
+        }
+      },
+      {
+        "atom": "PII_READ",
+        "value": false,
+        "metadata": {
+          "description": "Caller has permission to read PII",
+          "category": "permission",
+          "owner": "privacy-platform",
+          "provenance": [
+            {"source": "permissions.py", "line": 42, "symbol": "can_read_ssn"}
+          ]
+        }
+      },
+      {
+        "atom": "SUPPORT_OVERRIDE",
+        "value": true,
+        "metadata": {
+          "description": "Emergency support override is active",
+          "category": "override"
+        }
+      },
+      {
+        "atom": "INCIDENT_OPEN",
+        "value": true,
+        "metadata": {
+          "description": "An associated incident is open",
+          "category": "context"
+        }
+      }
+    ]
+  },
+  "activeAssumptions": 1,
+  "diagnostics": {
+    "atomCount": 5,
+    "astNodeCount": 14,
+    "bddNodeCount": 17,
+    "elapsedMs": 0,
+    "variableOrder": ["ADMIN", "EMPLOYEE", "PII_READ", "SUPPORT_OVERRIDE", "INCIDENT_OPEN"]
+  }
+}

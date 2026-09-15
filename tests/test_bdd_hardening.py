@@ -1,8 +1,12 @@
 import pytest
-
-from authz_analyzer import BDDNodeLimitError, BDDOperation, BinaryDecisionDiagram
-
 from bdd_oracle import compile_expression
+
+from authz_analyzer import (
+    BDDNodeLimitError,
+    BDDOperation,
+    BDDVariableLimitError,
+    BinaryDecisionDiagram,
+)
 
 
 def test_pick_sat_is_deterministic_and_prefers_false_branches():
@@ -40,9 +44,7 @@ def test_computed_cache_can_be_inspected_and_cleared():
 
 
 def test_computed_cache_can_be_bounded():
-    bdd = BinaryDecisionDiagram(
-        ["a", "b", "c"], max_computed_cache_entries=1
-    )
+    bdd = BinaryDecisionDiagram(["a", "b", "c"], max_computed_cache_entries=1)
     a, b, c = (bdd.var(name) for name in bdd.variables)
     bdd.apply(BDDOperation.AND, a, b)
     bdd.apply(BDDOperation.OR, a, c)
@@ -58,17 +60,23 @@ def test_node_limit_fails_before_mutating_the_manager():
     assert bdd.node_count == before
 
 
-def make_deep_chain(size, extra_variables=()):
+def make_deep_chain(size):
     variables = [f"x{i}" for i in range(size)]
-    bdd = BinaryDecisionDiagram([*variables, *extra_variables])
+    bdd = BinaryDecisionDiagram(variables)
     root = bdd.TRUE
     for level in reversed(range(size)):
         root = bdd._find_or_add(level, bdd.FALSE, root)
     return bdd, root
 
 
-def test_deep_diagrams_do_not_depend_on_python_recursion_limit():
-    bdd, root = make_deep_chain(1_100)
+def test_recursive_operations_handle_the_supported_variable_limit():
+    bdd, root = make_deep_chain(BinaryDecisionDiagram.MAX_VARIABLES)
     assert bdd.pick_sat(root) is not None
-    assert bdd.restrict(root, {"x1099": False}) == bdd.FALSE
-    assert bdd.exists(root, {"x1099"}) != bdd.FALSE
+    assert bdd.restrict(root, {"x255": False}) == bdd.FALSE
+    assert bdd.exists(root, {"x255"}) != bdd.FALSE
+
+
+def test_variable_limit_rejects_unsupported_universe():
+    variables = [f"x{i}" for i in range(BinaryDecisionDiagram.MAX_VARIABLES + 1)]
+    with pytest.raises(BDDVariableLimitError, match="256"):
+        BinaryDecisionDiagram(variables)

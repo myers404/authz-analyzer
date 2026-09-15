@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[test]"
+      - run: ruff format --check .
+      - run: ruff check .
+      - run: mypy src/
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install -e ".[test]"
+      - run: pytest
+
+  cudd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DD_CUDD: "1"
+      DD_FETCH: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install -e ".[test,oracle]"
+      - run: pytest tests/test_bdd_cudd.py tests/test_bdd_stateful_cudd.py
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install build
+      - run: python -m build
+      - run: python -m venv /tmp/authz-wheel-smoke
+      - run: /tmp/authz-wheel-smoke/bin/python -m pip install dist/*.whl
+      - run: /tmp/authz-wheel-smoke/bin/authz --version
+      - run: /tmp/authz-wheel-smoke/bin/authz validate examples/pii-access.json
+      - run: /tmp/authz-wheel-smoke/bin/authz explain examples/pii-access.json --expression user.ssn --limit 2
+      - run: /tmp/authz-wheel-smoke/bin/python -c "import importlib.resources; assert importlib.resources.files('authz_analyzer').joinpath('py.typed').is_file()"

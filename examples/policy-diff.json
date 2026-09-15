@@ -1,0 +1,31 @@
+{
+  "irVersion": "1",
+  "metadata": {
+    "title": "Widened access example"
+  },
+  "atoms": {
+    "EMPLOYEE": {"category": "identity"},
+    "PII_READ": {"category": "permission"},
+    "SUPPORT_OVERRIDE": {"category": "override"},
+    "INCIDENT_OPEN": {"category": "context"}
+  },
+  "expressions": {
+    "old": {
+      "op": "and",
+      "args": [{"atom": "EMPLOYEE"}, {"atom": "PII_READ"}]
+    },
+    "new": {
+      "op": "or",
+      "args": [
+        {
+          "op": "and",
+          "args": [{"atom": "EMPLOYEE"}, {"atom": "PII_READ"}]
+        },
+        {
+          "op": "and",
+          "args": [{"atom": "SUPPORT_OVERRIDE"}, {"atom": "INCIDENT_OPEN"}]
+        }
+      ]
+    }
+  }
+}

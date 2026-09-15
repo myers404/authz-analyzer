@@ -1,0 +1,74 @@
+{
+  "irVersion": "1",
+  "metadata": {
+    "title": "PII access verification example",
+    "description": "A support override creates a modeled bypass of the required permission."
+  },
+  "atoms": {
+    "EMPLOYEE": {
+      "description": "Caller is an employee",
+      "category": "identity"
+    },
+    "PII_READ": {
+      "description": "Caller has permission to read PII",
+      "category": "permission",
+      "owner": "privacy-platform",
+      "provenance": [
+        {"source": "permissions.py", "line": 42, "symbol": "can_read_ssn"}
+      ]
+    },
+    "ADMIN": {
+      "description": "Caller is an administrator",
+      "category": "role",
+      "provenance": [
+        {"source": "roles.yaml", "pointer": "/roles/admin"}
+      ]
+    },
+    "SUPPORT_OVERRIDE": {
+      "description": "Emergency support override is active",
+      "category": "override"
+    },
+    "INCIDENT_OPEN": {
+      "description": "An associated incident is open",
+      "category": "context"
+    }
+  },
+  "expressions": {
+    "user.ssn": {
+      "op": "or",
+      "args": [
+        {
+          "op": "and",
+          "args": [
+            {"atom": "EMPLOYEE"},
+            {"atom": "PII_READ"}
+          ]
+        },
+        {"atom": "ADMIN"},
+        {
+          "op": "and",
+          "args": [
+            {"atom": "SUPPORT_OVERRIDE"},
+            {"atom": "INCIDENT_OPEN"}
+          ]
+        }
+      ]
+    }
+  },
+  "requirements": {
+    "user.ssn": {
+      "op": "or",
+      "args": [
+        {"atom": "PII_READ"},
+        {"atom": "ADMIN"}
+      ]
+    }
+  },
+  "assumptions": [
+    {
+      "op": "implies",
+      "left": {"atom": "ADMIN"},
+      "right": {"atom": "EMPLOYEE"}
+    }
+  ]
+}

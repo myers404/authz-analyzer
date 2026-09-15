@@ -32,6 +32,8 @@ class Atom:
     def __post_init__(self) -> None:
         if not isinstance(self.name, str):
             raise TypeError("atom name must be a string")
+        if not self.name:
+            raise ValueError("atom name must not be empty")
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +135,21 @@ def evaluate(expression: Expression, assignment: Mapping[str, bool]) -> bool:
             raise TypeError("expected an expression node")
 
 
+def expression_node_count(expression: Expression) -> int:
+    """Count expression nodes, including repeated subexpressions."""
+    match expression:
+        case Constant() | Atom():
+            return 1
+        case Not(arg):
+            return 1 + expression_node_count(arg)
+        case And(args) | Or(args) | Xor(args):
+            return 1 + sum(expression_node_count(arg) for arg in args)
+        case Implies(left, right) | Equiv(left, right):
+            return 1 + expression_node_count(left) + expression_node_count(right)
+        case _:
+            raise TypeError("expected an expression node")
+
+
 __all__ = [
     "And",
     "Atom",
@@ -146,4 +163,5 @@ __all__ = [
     "all_of",
     "any_of",
     "evaluate",
+    "expression_node_count",
 ]

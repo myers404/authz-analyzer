@@ -1,6 +1,6 @@
-from authz_analyzer import BDDOperation, BinaryDecisionDiagram
-
 from bdd_oracle import assignments
+
+from authz_analyzer import BDDOperation, BinaryDecisionDiagram
 
 
 def dnf_bdd(bdd, variables, outputs):
@@ -47,9 +47,7 @@ def test_public_api_for_all_three_variable_boolean_functions():
         dnf_root = dnf_bdd(bdd, variables, outputs)
         cnf_root = cnf_bdd(bdd, variables, outputs)
         assert dnf_root == cnf_root
-        assert [bdd.evaluate(dnf_root, a) for a in all_assignments] == list(
-            outputs
-        )
+        assert [bdd.evaluate(dnf_root, a) for a in all_assignments] == list(outputs)
         assert bdd.is_satisfiable(dnf_root) == any(outputs)
 
         witness = bdd.pick_sat(dnf_root)
@@ -58,9 +56,7 @@ def test_public_api_for_all_three_variable_boolean_functions():
         else:
             matching_outputs = [
                 output
-                for assignment, output in zip(
-                    all_assignments, outputs, strict=True
-                )
+                for assignment, output in zip(all_assignments, outputs, strict=True)
                 if assignment.items() >= witness.items()
             ]
             assert matching_outputs and all(matching_outputs)
@@ -80,9 +76,7 @@ def test_public_api_for_all_three_variable_boolean_functions():
                 expected = []
                 for value in (False, True):
                     full = partial | {variable: value}
-                    result = truth_table[
-                        tuple(full[name] for name in variables)
-                    ]
+                    result = truth_table[tuple(full[name] for name in variables)]
                     expected.append(result)
                     assert bdd.evaluate(restricted[value], partial) == result
                 assert bdd.evaluate(exists, partial) == any(expected)

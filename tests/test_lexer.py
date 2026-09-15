@@ -14,21 +14,15 @@ def test_tokenize_reports_decoded_values_and_source_spans() -> None:
     ]
 
 
-def test_tokenize_supports_symbolic_and_word_operators() -> None:
-    tokens = tokenize("! not & and ^ xor | or -> implies <-> equiv ( )")
+def test_tokenize_supports_symbolic_operators() -> None:
+    tokens = tokenize("! & ^ | -> <-> ( )")
 
     assert [token.kind for token in tokens] == [
         TokenKind.NOT,
-        TokenKind.NOT,
-        TokenKind.AND,
         TokenKind.AND,
         TokenKind.XOR,
-        TokenKind.XOR,
-        TokenKind.OR,
         TokenKind.OR,
         TokenKind.IMPLIES,
-        TokenKind.IMPLIES,
-        TokenKind.EQUIV,
         TokenKind.EQUIV,
         TokenKind.LEFT_PAREN,
         TokenKind.RIGHT_PAREN,
@@ -36,12 +30,16 @@ def test_tokenize_supports_symbolic_and_word_operators() -> None:
     ]
 
 
-def test_keywords_are_case_sensitive_and_require_a_whole_bare_name() -> None:
-    tokens = tokenize("notable AND true false")
+def test_only_boolean_constants_are_reserved_words() -> None:
+    tokens = tokenize("not and xor or implies equiv true false")
 
     assert [(token.kind, token.value) for token in tokens[:-1]] == [
-        (TokenKind.ATOM, "notable"),
-        (TokenKind.ATOM, "AND"),
+        (TokenKind.ATOM, "not"),
+        (TokenKind.ATOM, "and"),
+        (TokenKind.ATOM, "xor"),
+        (TokenKind.ATOM, "or"),
+        (TokenKind.ATOM, "implies"),
+        (TokenKind.ATOM, "equiv"),
         (TokenKind.TRUE, "true"),
         (TokenKind.FALSE, "false"),
     ]
@@ -64,10 +62,18 @@ def test_quoted_atom_uses_json_string_escaping() -> None:
     assert token.value == "line\nλ"
 
 
-@pytest.mark.parametrize("source", ["@", "1abc", "a١", '"unterminated'])
+@pytest.mark.parametrize("source", ["@", "1abc", "a١", '""', '"unterminated'])
 def test_invalid_input_has_a_source_position(source: str) -> None:
     with pytest.raises(ExpressionSyntaxError) as error:
         tokenize(source)
 
     assert error.value.start >= 0
     assert error.value.end >= error.value.start
+
+
+def test_syntax_error_reports_line_and_column() -> None:
+    with pytest.raises(ExpressionSyntaxError) as error:
+        tokenize("a &\n@")
+
+    assert (error.value.line, error.value.column) == (2, 1)
+    assert error.value.code == "invalid_syntax"

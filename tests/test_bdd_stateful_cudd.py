@@ -1,11 +1,13 @@
-from dd.cudd import BDD as CuddBDD
-from hypothesis import settings, strategies as st
+import pytest
+from bdd_oracle import assignments
+from cudd_oracle import cudd_value
+from hypothesis import settings
+from hypothesis import strategies as st
 from hypothesis.stateful import Bundle, RuleBasedStateMachine, initialize, rule
 
 from authz_analyzer import BDDOperation, BinaryDecisionDiagram
 
-from bdd_oracle import assignments
-from cudd_oracle import cudd_value
+CuddBDD = pytest.importorskip("dd.cudd").BDD
 
 VARIABLES = ("a", "b", "c")
 BINARY_OPERATIONS = st.sampled_from(
@@ -90,15 +92,18 @@ class BDDDifferentialMachine(RuleBasedStateMachine):
     def quantify(self, node, quantified, for_all):
         ours, cudd = node
         if for_all:
-            result = self.ours.forall(ours, quantified), self.cudd.forall(
-                quantified, cudd
+            result = (
+                self.ours.forall(ours, quantified),
+                self.cudd.forall(quantified, cudd),
             )
         else:
-            result = self.ours.exists(ours, quantified), self.cudd.exist(
-                quantified, cudd
+            result = (
+                self.ours.exists(ours, quantified),
+                self.cudd.exist(quantified, cudd),
             )
         self.assert_equivalent(*result)
         return result
+
 
 TestBDDDifferential = BDDDifferentialMachine.TestCase
 TestBDDDifferential.settings = settings(

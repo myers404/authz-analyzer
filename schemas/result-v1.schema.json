@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:authz-analyzer:schema:result:v1",
+  "title": "Boolean Authorization Analyzer Result v1",
+  "oneOf": [
+    {"$ref": "#/$defs/verifyResult"},
+    {"$ref": "#/$defs/diffResult"},
+    {"$ref": "#/$defs/explainResult"},
+    {"$ref": "#/$defs/reportResult"},
+    {"$ref": "#/$defs/validateResult"},
+    {"$ref": "#/$defs/errorResult"}
+  ],
+  "$defs": {
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "atomCount": {"type": "integer", "minimum": 0},
+        "astNodeCount": {"type": "integer", "minimum": 0},
+        "bddNodeCount": {"type": "integer", "minimum": 0},
+        "elapsedMs": {"type": "number", "minimum": 0},
+        "variableOrder": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["complete", "values"],
+      "properties": {
+        "complete": {"type": "boolean"},
+        "values": {
+          "type": "object",
+          "propertyNames": {"minLength": 1},
+          "additionalProperties": {"type": "boolean"}
+        }
+      }
+    },
+    "literal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atom", "value"],
+      "properties": {
+        "atom": {"type": "string", "minLength": 1},
+        "value": {"type": "boolean"},
+        "metadata": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "explanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minimality", "literals"],
+      "properties": {
+        "minimality": {"enum": ["subset-minimal", "minimal-positive"]},
+        "literals": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/literal"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"minimality": {"const": "minimal-positive"}},
+            "required": ["minimality"]
+          },
+          "then": {
+            "properties": {
+              "literals": {
+                "items": {"properties": {"value": {"const": true}}}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "verifyResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultVersion", "kind", "status", "access", "required"],
+      "properties": {
+        "resultVersion": {"const": "1"},
+        "kind": {"const": "verify"},
+        "status": {"enum": ["holds", "violated"]},
+        "access": {"type": "string", "minLength": 1},
+        "required": {"type": "string", "minLength": 1},
+        "counterexample": {"$ref": "#/$defs/assignment"},
+        "explanation": {"$ref": "#/$defs/explanation"},
+        "activeAssumptions": {"type": "integer", "minimum": 0},
+        "diagnostics": {"$ref": "#/$defs/diagnostics"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "violated"}}, "required": ["status"]},
+          "then": {"required": ["counterexample"]},
+          "else": {"not": {"anyOf": [{"required": ["counterexample"]}, {"required": ["explanation"]}]}}
+        }
+      ]
+    },
+    "diffResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultVersion", "kind", "status", "old", "new", "classification"],
+      "properties": {
+        "resultVersion": {"const": "1"},
+        "kind": {"const": "diff"},
+        "status": {"const": "completed"},
+        "old": {"type": "string", "minLength": 1},
+        "new": {"type": "string", "minLength": 1},
+        "classification": {"enum": ["equivalent", "widened", "narrowed", "incomparable"]},
+        "addedAccess": {"$ref": "#/$defs/regionEvidence"},
+        "removedAccess": {"$ref": "#/$defs/regionEvidence"},
+        "activeAssumptions": {"type": "integer", "minimum": 0},
+        "diagnostics": {"$ref": "#/$defs/diagnostics"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"classification": {"const": "widened"}}, "required": ["classification"]},
+          "then": {
+            "required": ["addedAccess"],
+            "not": {"required": ["removedAccess"]}
+          }
+        },
+        {
+          "if": {"properties": {"classification": {"const": "narrowed"}}, "required": ["classification"]},
+          "then": {
+            "required": ["removedAccess"],
+            "not": {"required": ["addedAccess"]}
+          }
+        },
+        {
+          "if": {"properties": {"classification": {"const": "incomparable"}}, "required": ["classification"]},
+          "then": {"required": ["addedAccess", "removedAccess"]}
+        },
+        {
+          "if": {"properties": {"classification": {"const": "equivalent"}}, "required": ["classification"]},
+          "then": {"not": {"anyOf": [{"required": ["addedAccess"]}, {"required": ["removedAccess"]}]}}
+        }
+      ]
+    },
+    "regionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["counterexample"],
+      "properties": {
+        "counterexample": {"$ref": "#/$defs/assignment"},
+        "explanation": {"$ref": "#/$defs/explanation"}
+      }
+    },
+    "explainResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultVersion", "kind", "status", "target", "explanations", "truncated"],
+      "properties": {
+        "resultVersion": {"const": "1"},
+        "kind": {"const": "explain"},
+        "status": {"const": "completed"},
+        "target": {"type": "string", "minLength": 1},
+        "explanations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/explanation"}
+        },
+        "truncated": {"type": "boolean"},
+        "activeAssumptions": {"type": "integer", "minimum": 0},
+        "diagnostics": {"$ref": "#/$defs/diagnostics"}
+      }
+    },
+    "reportEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["access", "required", "status", "explanations", "truncated"],
+      "properties": {
+        "access": {"type": "string", "minLength": 1},
+        "required": {"type": "string", "minLength": 1},
+        "status": {"enum": ["holds", "violated"]},
+        "counterexample": {"$ref": "#/$defs/assignment"},
+        "explanations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/explanation"}
+        },
+        "truncated": {"type": "boolean"},
+        "diagnostics": {"$ref": "#/$defs/diagnostics"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "violated"}}, "required": ["status"]},
+          "then": {"required": ["counterexample"]},
+          "else": {
+            "not": {"required": ["counterexample"]},
+            "properties": {
+              "explanations": {"maxItems": 0},
+              "truncated": {"const": false}
+            }
+          }
+        }
+      ]
+    },
+    "reportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultVersion", "kind", "status", "entries", "unverifiedExpressions", "activeAssumptions"],
+      "properties": {
+        "resultVersion": {"const": "1"},
+        "kind": {"const": "report"},
+        "status": {"const": "completed"},
+        "entries": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/reportEntry"}
+        },
+        "unverifiedExpressions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "activeAssumptions": {"type": "integer", "minimum": 0}
+      }
+    },
+    "validateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultVersion", "kind", "status"],
+      "properties": {
+        "resultVersion": {"const": "1"},
+        "kind": {"const": "validate"},
+        "status": {"const": "valid"},
+        "diagnostics": {"$ref": "#/$defs/diagnostics"}
+      }
+    },
+    "errorResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultVersion", "kind", "status", "error"],
+      "properties": {
+        "resultVersion": {"const": "1"},
+        "kind": {"enum": ["verify", "diff", "explain", "report", "validate"]},
+        "status": {"enum": ["invalid_input", "invalid_constraints", "resource_limit", "internal_error"]},
+        "error": {"$ref": "#/$defs/error"},
+        "diagnostics": {"$ref": "#/$defs/diagnostics"}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "message": {"type": "string", "minLength": 1},
+        "pointer": {"type": "string"},
+        "line": {"type": "integer", "minimum": 1},
+        "column": {"type": "integer", "minimum": 1},
+        "details": {"type": "object", "additionalProperties": true}
+      }
+    }
+  }
+}

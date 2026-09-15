@@ -58,7 +58,6 @@ def test_convenience_constructors_preserve_boolean_identities() -> None:
 
 
 def test_atom_names_are_opaque_strings() -> None:
-    assert evaluate(Atom(""), {"": True}) is True
     assert evaluate(Atom("team:read/write"), {"team:read/write": False}) is False
 
 
@@ -67,6 +66,7 @@ def test_atom_names_are_opaque_strings() -> None:
     [
         lambda: Constant(1),
         lambda: Atom(1),
+        lambda: Atom(""),
         lambda: Not(True),
         lambda: And((Atom("a"), "b")),
         lambda: Or([Atom("a")]),

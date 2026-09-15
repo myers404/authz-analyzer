@@ -1,8 +1,8 @@
-from hypothesis import given, settings, strategies as st
+from bdd_oracle import assignments, atoms, compile_expression, evaluate
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from authz_analyzer import BDDOperation, BinaryDecisionDiagram
-
-from bdd_oracle import assignments, atoms, compile_expression, evaluate
 
 ATOM = st.sampled_from(["a", "b", "c", "d"])
 LEAF = st.one_of(st.booleans(), ATOM)

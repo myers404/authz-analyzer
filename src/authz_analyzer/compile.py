@@ -28,7 +28,7 @@ def _children(expression: Expression) -> tuple[Expression, ...]:
             raise TypeError("expected an expression node")
 
 
-def _atom_order(expression: Expression) -> tuple[str, ...]:
+def _atom_order(expressions: Iterable[Expression]) -> tuple[str, ...]:
     names: dict[str, None] = {}
 
     def visit(node: Expression) -> None:
@@ -37,23 +37,28 @@ def _atom_order(expression: Expression) -> tuple[str, ...]:
         for child in _children(node):
             visit(child)
 
-    visit(expression)
+    for expression in expressions:
+        visit(expression)
     return tuple(names)
 
 
-def compile_expression(
-    expression: Expression,
+def compile_expressions(
+    expressions: Iterable[Expression],
     *,
     variable_order: Iterable[str] | None = None,
-) -> tuple[BinaryDecisionDiagram, NodeRef]:
-    """Compile an expression into a new BDD manager and its root reference."""
-    atom_order = _atom_order(expression)
-    variables = atom_order if variable_order is None else tuple(variable_order)
-    missing = [name for name in atom_order if name not in variables]
-    if missing:
-        raise ValueError(f"variable order is missing atoms: {', '.join(missing)}")
+    max_nodes: int | None = None,
+) -> tuple[BinaryDecisionDiagram, tuple[NodeRef, ...]]:
+    """Compile expressions into one BDD manager, preserving their order."""
+    expressions = tuple(expressions)
+    atom_order = _atom_order(expressions)
+    if variable_order is None:
+        variables = atom_order
+    else:
+        requested = tuple(variable_order)
+        missing = sorted(name for name in atom_order if name not in requested)
+        variables = requested + tuple(missing)
+    bdd = BinaryDecisionDiagram(variables, max_nodes=max_nodes)
 
-    bdd = BinaryDecisionDiagram(variables)
     memo: dict[Expression, NodeRef] = {}
 
     def compile_node(node: Expression) -> NodeRef:
@@ -93,7 +98,20 @@ def compile_expression(
         memo[node] = result
         return result
 
-    return bdd, compile_node(expression)
+    return bdd, tuple(compile_node(expression) for expression in expressions)
 
 
-__all__ = ["compile_expression"]
+def compile_expression(
+    expression: Expression,
+    *,
+    variable_order: Iterable[str] | None = None,
+    max_nodes: int | None = None,
+) -> tuple[BinaryDecisionDiagram, NodeRef]:
+    """Compile one expression into a new BDD manager and its root reference."""
+    bdd, roots = compile_expressions(
+        (expression,), variable_order=variable_order, max_nodes=max_nodes
+    )
+    return bdd, roots[0]
+
+
+__all__ = ["compile_expression", "compile_expressions"]

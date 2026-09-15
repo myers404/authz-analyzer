@@ -1,24 +1,65 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "authz-analyzer"
 version = "0.1.0"
+description = "Exact Boolean analysis for authorization policies"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = []
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/myers404/authz-analyzer"
+Repository = "https://github.com/myers404/authz-analyzer"
+Issues = "https://github.com/myers404/authz-analyzer/issues"
+Documentation = "https://github.com/myers404/authz-analyzer/tree/main/docs"
+
+[project.scripts]
+authz = "authz_analyzer.cli:main"
 
 [project.optional-dependencies]
 test = [
+    "hypothesis",
+    "jsonschema",
+    "mypy",
+    "pytest",
+    "ruff",
+]
+oracle = [
     "cython",
     "dd==0.6.0",
-    "hypothesis",
-    "pytest",
     "wheel",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+authz_analyzer = ["py.typed"]

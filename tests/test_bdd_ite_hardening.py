@@ -1,6 +1,6 @@
-from authz_analyzer import BDDOperation, BinaryDecisionDiagram
-
 from test_bdd_hardening import make_deep_chain
+
+from authz_analyzer import BDDOperation, BinaryDecisionDiagram
 
 
 def test_ite_reductions_do_not_populate_the_computed_cache():
@@ -23,7 +23,7 @@ def test_complement_equivalent_ite_calls_share_a_cache_entry():
     assert after["computed_cache_size"] == before["computed_cache_size"]
 
 
-def test_deep_ite_does_not_depend_on_python_recursion_limit():
-    bdd, root = make_deep_chain(1_100, extra_variables=["last"])
-    result = bdd.apply(BDDOperation.OR, root, bdd.var("last"))
-    assert bdd.pick_sat(result) == {"x0": False, "last": True}
+def test_recursive_ite_handles_the_supported_variable_limit():
+    bdd, root = make_deep_chain(BinaryDecisionDiagram.MAX_VARIABLES)
+    last = bdd.var(bdd.variables[-1])
+    assert bdd.apply(BDDOperation.OR, root, last) == last

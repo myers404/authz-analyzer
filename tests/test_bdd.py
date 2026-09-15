@@ -1,8 +1,7 @@
 import pytest
+from bdd_oracle import assignments, compile_expression, evaluate
 
 from authz_analyzer import BDDOperation, BinaryDecisionDiagram
-
-from bdd_oracle import assignments, compile_expression, evaluate
 
 
 def assert_semantics(bdd, root, expression):

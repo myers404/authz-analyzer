@@ -1,0 +1,47 @@
+{
+  "resultVersion": "1",
+  "kind": "diff",
+  "status": "completed",
+  "old": "old",
+  "new": "new",
+  "classification": "widened",
+  "addedAccess": {
+    "counterexample": {
+      "complete": true,
+      "values": {
+        "EMPLOYEE": false,
+        "PII_READ": false,
+        "SUPPORT_OVERRIDE": true,
+        "INCIDENT_OPEN": true
+      }
+    },
+    "explanation": {
+      "minimality": "subset-minimal",
+      "literals": [
+        {
+          "atom": "EMPLOYEE",
+          "value": false,
+          "metadata": {"category": "identity"}
+        },
+        {
+          "atom": "SUPPORT_OVERRIDE",
+          "value": true,
+          "metadata": {"category": "override"}
+        },
+        {
+          "atom": "INCIDENT_OPEN",
+          "value": true,
+          "metadata": {"category": "context"}
+        }
+      ]
+    }
+  },
+  "activeAssumptions": 0,
+  "diagnostics": {
+    "atomCount": 4,
+    "astNodeCount": 10,
+    "bddNodeCount": 10,
+    "elapsedMs": 0,
+    "variableOrder": ["EMPLOYEE", "PII_READ", "SUPPORT_OVERRIDE", "INCIDENT_OPEN"]
+  }
+}

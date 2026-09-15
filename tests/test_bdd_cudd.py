@@ -1,10 +1,10 @@
-from dd.cudd import BDD as CuddBDD
-from hypothesis import given, settings, strategies as st
-
-from authz_analyzer import BDDOperation, BinaryDecisionDiagram
-
+import pytest
 from bdd_oracle import assignments, atoms, compile_expression
 from cudd_oracle import cudd_value
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+CuddBDD = pytest.importorskip("dd.cudd").BDD
 
 ATOM = st.sampled_from(["a", "b", "c", "d", "e"])
 LEAF = st.one_of(st.booleans(), ATOM)

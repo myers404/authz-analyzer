@@ -33,18 +33,15 @@ class ExpressionSyntaxError(ValueError):
         self.source = source
         self.start = start
         self.end = start if end is None else end
-        super().__init__(f"{message} at offset {start}")
+        self.code = "invalid_syntax"
+        self.line = source.count("\n", 0, start) + 1
+        self.column = start - source.rfind("\n", 0, start)
+        super().__init__(f"{message} at line {self.line}, column {self.column}")
 
 
 _WORDS = {
     "true": TokenKind.TRUE,
     "false": TokenKind.FALSE,
-    "not": TokenKind.NOT,
-    "and": TokenKind.AND,
-    "xor": TokenKind.XOR,
-    "or": TokenKind.OR,
-    "implies": TokenKind.IMPLIES,
-    "equiv": TokenKind.EQUIV,
 }
 
 _SYMBOLS = (
@@ -88,6 +85,10 @@ def tokenize(source: str) -> tuple[Token, ...]:
                     "invalid quoted atom", source, error_position
                 ) from None
             position += length
+            if not value:
+                raise ExpressionSyntaxError(
+                    "quoted atom must not be empty", source, start, position
+                )
             tokens.append(Token(TokenKind.ATOM, value, start, position))
             continue
 

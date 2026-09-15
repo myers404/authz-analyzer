@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:authz-analyzer:schema:boolean-ir:v1",
+  "title": "Boolean Authorization IR v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["irVersion", "expressions"],
+  "properties": {
+    "irVersion": {"const": "1"},
+    "atoms": {
+      "type": "object",
+      "propertyNames": {"minLength": 1},
+      "additionalProperties": {"$ref": "#/$defs/atomMetadata"},
+      "default": {}
+    },
+    "expressions": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"minLength": 1},
+      "additionalProperties": {"$ref": "#/$defs/expression"}
+    },
+    "requirements": {
+      "type": "object",
+      "propertyNames": {"minLength": 1},
+      "additionalProperties": {"$ref": "#/$defs/expression"},
+      "default": {}
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/expression"},
+      "default": []
+    },
+    "metadata": {"$ref": "#/$defs/documentMetadata"}
+  },
+  "$defs": {
+    "expression": {
+      "oneOf": [
+        {"$ref": "#/$defs/constant"},
+        {"$ref": "#/$defs/atom"},
+        {"$ref": "#/$defs/not"},
+        {"$ref": "#/$defs/nary"},
+        {"$ref": "#/$defs/binary"}
+      ]
+    },
+    "constant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["const"],
+      "properties": {"const": {"type": "boolean"}}
+    },
+    "atom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atom"],
+      "properties": {"atom": {"type": "string", "minLength": 1}}
+    },
+    "not": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "arg"],
+      "properties": {
+        "op": {"const": "not"},
+        "arg": {"$ref": "#/$defs/expression"}
+      }
+    },
+    "nary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "args"],
+      "properties": {
+        "op": {"enum": ["and", "or", "xor"]},
+        "args": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/expression"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"op": {"const": "xor"}}, "required": ["op"]},
+          "then": {"properties": {"args": {"minItems": 2}}}
+        }
+      ]
+    },
+    "binary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "left", "right"],
+      "properties": {
+        "op": {"enum": ["implies", "equiv"]},
+        "left": {"$ref": "#/$defs/expression"},
+        "right": {"$ref": "#/$defs/expression"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "line": {"type": "integer", "minimum": 1},
+        "column": {"type": "integer", "minimum": 1},
+        "pointer": {"type": "string"},
+        "symbol": {"type": "string"},
+        "note": {"type": "string"}
+      },
+      "anyOf": [
+        {"required": ["source"]},
+        {"required": ["pointer"]},
+        {"required": ["symbol"]},
+        {"required": ["note"]}
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "atomMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {"type": "string"},
+        "category": {"type": "string"},
+        "owner": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "provenance": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/provenance"}
+        },
+        "extensions": {"$ref": "#/$defs/extensions"}
+      }
+    },
+    "documentMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+        "extensions": {"$ref": "#/$defs/extensions"}
+      }
+    }
+  }
+}

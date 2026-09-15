@@ -4,7 +4,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from authz_analyzer.compile import compile_expression
+from authz_analyzer.bdd import BDDNodeLimitError
+from authz_analyzer.compile import compile_expression, compile_expressions
 from authz_analyzer.expressions import (
     And,
     Atom,
@@ -59,9 +60,49 @@ def test_compiler_accepts_an_explicit_variable_universe() -> None:
     assert bdd.evaluate(root, {"unused": False, "a": True}) is True
 
 
-def test_compiler_rejects_an_order_missing_a_referenced_atom() -> None:
-    with pytest.raises(ValueError, match="missing"):
-        compile_expression(And((Atom("a"), Atom("b"))), variable_order=("a",))
+def test_compiler_appends_atoms_missing_from_an_explicit_partial_order() -> None:
+    bdd, _ = compile_expression(
+        And((Atom("z"), Atom("a"), Atom("m"))), variable_order=("m",)
+    )
+
+    assert bdd.variables == ("m", "a", "z")
+
+
+def test_compile_multiple_expressions_into_one_variable_universe() -> None:
+    expressions = (parse("z & a"), parse("a -> m"), Not(Atom("z")))
+    bdd, roots = compile_expressions(expressions)
+
+    assert bdd.variables == ("z", "a", "m")
+    assert len(roots) == len(expressions)
+    for values in product((False, True), repeat=len(bdd.variables)):
+        assignment = dict(zip(bdd.variables, values, strict=True))
+        assert tuple(bdd.evaluate(root, assignment) for root in roots) == tuple(
+            evaluate(expression, assignment) for expression in expressions
+        )
+
+
+def test_compile_multiple_accepts_an_iterable_and_preserves_root_order() -> None:
+    expressions = (Atom(name) for name in ("b", "a"))
+    bdd, roots = compile_expressions(expressions)
+
+    assert bdd.variables == ("b", "a")
+    assert bdd.evaluate(roots[0], {"b": True, "a": False}) is True
+    assert bdd.evaluate(roots[1], {"b": True, "a": False}) is False
+
+
+def test_compile_no_expressions_returns_an_empty_manager() -> None:
+    bdd, roots = compile_expressions(())
+
+    assert bdd.variables == ()
+    assert roots == ()
+
+
+def test_shared_partial_order_appends_atoms_from_every_expression() -> None:
+    bdd, _ = compile_expressions(
+        (Atom("z"), Atom("a"), Atom("b")), variable_order=("b",)
+    )
+
+    assert bdd.variables == ("b", "a", "z")
 
 
 def test_parse_compile_and_evaluate_end_to_end() -> None:
@@ -71,3 +112,8 @@ def test_parse_compile_and_evaluate_end_to_end() -> None:
 
     assert evaluate(expression, assignment) is True
     assert bdd.evaluate(root, assignment) is True
+
+
+def test_compiler_passes_the_node_limit_to_the_manager() -> None:
+    with pytest.raises(BDDNodeLimitError):
+        compile_expression(And((Atom("a"), Atom("b"))), max_nodes=1)
